@@ -3,6 +3,7 @@
 A full-stack bookmark manager built with **Next.js 15**, **Supabase**, and **TypeScript**. Users authenticate via Google OAuth, save bookmarks, and see changes sync across tabs in real time using Supabase Realtime.
 
 **Live Demo:** [your-vercel-url.vercel.app](https://your-vercel-url.vercel.app) <!-- Replace with actual URL after deployment -->
+** **Video Demo:** ** [demo-video](https://www.loom.com/share/42e684708a2f4983bd27bbea818844c0)
 
 ## Features
 
