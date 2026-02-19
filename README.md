@@ -10,20 +10,19 @@ A full-stack bookmark manager built with **Next.js 15**, **Supabase**, and **Typ
 - **CRUD Bookmarks** — Add, view, and delete bookmarks with optimistic UI updates
 - **Real-time Sync** — Bookmarks update across browser tabs instantly via Supabase Realtime (Postgres Changes)
 - **Server-Side Rendering** — Initial bookmarks are fetched on the server for fast page loads
-- **Dark Mode** — Theme toggle powered by `next-themes`
 - **Responsive UI** — Built with shadcn/ui components and Tailwind CSS
 
 ## Tech Stack
 
-| Layer         | Technology                                  |
-|---------------|---------------------------------------------|
-| Framework     | Next.js 15 (App Router)                     |
-| Language      | TypeScript (strict mode)                    |
-| Auth          | Supabase Auth (Google OAuth)                |
-| Database      | Supabase (PostgreSQL + Row Level Security)  |
-| Realtime      | Supabase Realtime (Postgres Changes)        |
-| Styling       | Tailwind CSS v3 + shadcn/ui (New York)      |
-| Deployment    | Vercel                                      |
+| Layer      | Technology                                 |
+| ---------- | ------------------------------------------ |
+| Framework  | Next.js 15 (App Router)                    |
+| Language   | TypeScript (strict mode)                   |
+| Auth       | Supabase Auth (Google OAuth)               |
+| Database   | Supabase (PostgreSQL + Row Level Security) |
+| Realtime   | Supabase Realtime (Postgres Changes)       |
+| Styling    | Tailwind CSS v3 + shadcn/ui (New York)     |
+| Deployment | Vercel                                     |
 
 ## Getting Started
 
@@ -36,8 +35,8 @@ A full-stack bookmark manager built with **Next.js 15**, **Supabase**, and **Typ
 ### Setup
 
 ```bash
-git clone https://github.com/your-username/smart-bookmark-app.git
-cd smart-bookmark-app
+git clone https://github.com/yashas8197/markly.git
+cd markly
 npm install
 ```
 
@@ -141,25 +140,6 @@ proxy.ts                    # Request interceptor (replaces middleware.ts)
 2. **Verified Publication** — Confirmed `bookmarks` was in the `supabase_realtime` publication with `pubinsert: true`.
 3. **Verified Replication Slot** — Confirmed the slot was active.
 4. **Added debug logging** — Logged subscription status, auth session state, token expiry, and payload details. Subscription showed `SUBSCRIBED` status with valid auth, but INSERT payloads never arrived.
-5. **Added an unfiltered debug channel** — Created a second subscription without the `filter: user_id=eq.${userId}` parameter. Neither filtered nor unfiltered channels received INSERT events, confirming the issue was server-side.
-
-**Root cause (two issues):**
-
-- **RLS SELECT policy blocking Realtime delivery:** Supabase Realtime evaluates the table's Row Level Security SELECT policy to decide whether a subscriber should receive an event. The `auth.uid()` function does not reliably resolve in the Realtime server's execution context, so the RLS check silently failed and INSERT events were dropped before reaching the client. DELETE events were unaffected because Supabase does not apply RLS SELECT policies to DELETE payloads in Realtime.
-- **Publication not emitting INSERT events:** The `supabase_realtime` publication either did not include the `bookmarks` table or only had partial event types enabled.
-
-**Fix applied:**
-
-```sql
--- Fix 1: Relax the SELECT RLS policy for Realtime compatibility
-DROP POLICY "Users can view their own bookmarks" ON bookmarks;
-CREATE POLICY "Users can view their own bookmarks"
-  ON bookmarks FOR SELECT TO authenticated USING (true);
-
--- Fix 2: Re-add the table to ensure all event types are published
-ALTER PUBLICATION supabase_realtime DROP TABLE IF EXISTS bookmarks;
-ALTER PUBLICATION supabase_realtime ADD TABLE bookmarks;
-```
 
 User isolation is still enforced at the application layer — all queries scope data with `.eq("user_id", userId)`, and INSERT/DELETE RLS policies still require `auth.uid() = user_id`.
 
